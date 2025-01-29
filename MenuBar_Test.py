@@ -174,7 +174,7 @@ class MainWindow(QWidget):
 
         self.timer = QTimer()  # start timer
         self.timer.timeout.connect(add_letter)
-        self.timer.start(10)  # while timer isn't stop he going to call add_letter
+        self.timer.start(10)  # while timer isn't stop he's going to call add_letter
 
     def show_about(self):
         QMessageBox.information(self, "About Application", "Test menuBar v1.0\nCreate with PySide6.")
