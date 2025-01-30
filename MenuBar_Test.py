@@ -166,7 +166,7 @@ class MainWindow(QWidget):
         self.update_recent_files()
 
     def update_recent_files(self):
-        self.action_recentFile.clear()  # Supprime les anciens fichiers
+        self.action_recentFile.clear()
 
         for file in os.listdir(self.save_dir):
             action = self.action_recentFile.addAction(file)
