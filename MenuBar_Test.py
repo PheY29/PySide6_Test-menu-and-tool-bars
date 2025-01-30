@@ -1,19 +1,22 @@
 import random
 import string
+import json
+import os
 
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QPushButton, QWidget, QApplication, QTextEdit, QMenuBar
+from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget, QApplication, QTextEdit, QMenuBar, QFileDialog
 
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
+        self.save_dir = os.path.join(os.path.dirname(__file__), "save")
+        self.actual_text = ""
+
         self.setup_ui()
         self.setWindowTitle("Test MenuBar")
         self.resize(500, 400)
-
-        self.actual_text = ""
 
     def setup_ui(self):
         self.create_layouts()
@@ -32,11 +35,22 @@ class MainWindow(QWidget):
         def create_file_menu():
             self.file_menu = self.menuBar.addMenu("&File")
 
-            self.action_newPage = self.file_menu.addAction(QIcon("icons/new.png"), "New page")
+            self.action_newPage = self.file_menu.addAction(QIcon("icons/new.png"), "New")
+            self.file_menu.addSeparator()
+            self.action_openFile = self.file_menu.addAction(QIcon("icons/open.png"), "Open...")
+            self.action_saveFile = self.file_menu.addAction(QIcon("icons/save.png"), "Save")
+            self.action_saveFileAs = self.file_menu.addAction(QIcon("icons/save_as.png"), "Save As...")
+            self.file_menu.addSeparator()
+            self.action_recentFile = self.file_menu.addMenu("Recent File")
+            self.update_recent_files()
             self.file_menu.addSeparator()
             self.action_exit = self.file_menu.addAction(QIcon("icons/exit.png"), "Exit")
 
             self.action_newPage.triggered.connect(self.new_page)
+            self.action_openFile.triggered.connect(self.open_file)
+            self.action_saveFile.triggered.connect(self.save_file)
+            self.action_saveFileAs.triggered.connect(self.save_file_as)
+
             self.action_exit.triggered.connect(self.close_appli)
 
         def create_edit_menu():
@@ -103,6 +117,61 @@ class MainWindow(QWidget):
         self.te_content.redoAvailable.connect(self.update_undo_redo)
 
     ############################
+    def open_file(self):
+        file_path = QFileDialog.getOpenFileName(self,
+                                                caption="Open a Text File",
+                                                dir=self.save_dir,
+                                                filter="Text Files (*.txt)")[0]
+        if not file_path:
+            return
+
+        with open("".join(file_path), "r") as f:
+            text = json.load(f)
+            self.te_content.setText(text)
+
+    def charge_file(self, file_name):
+        file_path = os.path.join(self.save_dir, file_name)
+        with open(file_path, "r") as f:
+            text = json.load(f)
+            self.te_content.setText(text)
+
+    def save_content(self, directory=None, ask_directory=False):
+        content = self.te_content.toPlainText()
+
+        if ask_directory:
+            directory = QFileDialog.getExistingDirectory(self, caption="Select the folder where will be saved")
+            if not directory:
+                return
+
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        save_num = 1
+        save_path = os.path.join(directory, f"save_{save_num}.txt")
+        for file in os.listdir(directory):
+            if "save" and str(save_num) in os.path.basename(file):
+                save_num += 1
+
+        with open(save_path, "w") as f:
+            json.dump(content, f, indent=4)
+
+        return save_path
+
+    def save_file(self):
+        self.save_content(directory=self.save_dir)
+        self.update_recent_files()
+
+    def save_file_as(self):
+        self.save_content(ask_directory=True)
+        self.update_recent_files()
+
+    def update_recent_files(self):
+        self.action_recentFile.clear()  # Supprime les anciens fichiers
+
+        for file in os.listdir(self.save_dir):
+            action = self.action_recentFile.addAction(file)
+            action.triggered.connect(lambda checked, f=file: self.charge_file(f))
+
     def update_copy_cut_delete(self):
         if self.te_content.textCursor().hasSelection():
             self.action_delete.setEnabled(True)
@@ -152,7 +221,12 @@ class MainWindow(QWidget):
         self.te_content.cut()
 
     def new_page(self):
-        self.timer.stop()
+        try:
+            if self.timer:
+                self.timer.stop()
+        except AttributeError:
+            return
+
         self.actual_text = self.te_content.toPlainText()
         self.te_content.clear()
 
