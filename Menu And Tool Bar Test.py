@@ -3,12 +3,13 @@ import string
 import json
 import os
 
-from PySide6.QtCore import QTimer
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget, QApplication, QTextEdit, QMenuBar, QFileDialog
+from PySide6.QtCore import QTimer, QSize
+from PySide6.QtGui import QIcon, QAction
+from PySide6.QtWidgets import (QMessageBox, QVBoxLayout, QWidget, QApplication, QTextEdit, QFileDialog,
+                               QToolBar, QMainWindow)
 
 
-class MainWindow(QWidget):
+class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.save_dir = os.path.join(os.path.dirname(__file__), "save")
@@ -21,83 +22,125 @@ class MainWindow(QWidget):
     def setup_ui(self):
         self.create_layouts()
         self.create_widgets()
+        self.create_action()
         self.create_menu_bar()
+        self.create_tool_bar()
         self.modify()
         self.add_widgets_to_layouts()
         self.setup_connections()
 
     def create_layouts(self):
-        self.main_layout = QVBoxLayout(self)
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+
+        self.main_layout = QVBoxLayout(self.central_widget)
+
+    def create_action(self):
+        # File
+        self.action_newPage = QAction(QIcon("icons/new.png"), "New", self)
+        self.action_newPage.triggered.connect(self.new_page)
+        self.action_openFile = QAction(QIcon("icons/open.png"), "Open...", self)
+        self.action_openFile.triggered.connect(self.open_file)
+        self.action_saveFile = QAction(QIcon("icons/save.png"), "Save", self)
+        self.action_saveFile.triggered.connect(self.save_file)
+        self.action_saveFileAs = QAction(QIcon("icons/save_as.png"), "Save As...", self)
+        self.action_saveFileAs.triggered.connect(self.save_file_as)
+        self.action_exit = QAction(QIcon("icons/exit.png"), "Exit", self)
+        self.action_exit.triggered.connect(self.close_appli)
+
+        # Edit
+        self.action_random_msg = QAction(QIcon("icons/write.png"), "Write word", self)
+        self.action_random_msg.triggered.connect(self.write_word)
+        self.action_undo = QAction(QIcon("icons/undo.png"), "Undo", self)
+        self.action_undo.triggered.connect(self.undo_action)
+        self.action_undo.setShortcut("Ctrl+Z")
+        self.action_undo.setEnabled(False)
+        self.action_redo = QAction(QIcon("icons/redo.png"), "Redo", self)
+        self.action_redo.triggered.connect(self.redo_action)
+        self.action_redo.setShortcut("Ctrl+Y")
+        self.action_redo.setEnabled(False)
+        self.action_copyText = QAction(QIcon("icons/copy.png"), "Copy", self)
+        self.action_copyText.triggered.connect(self.copy_text)
+        self.action_copyText.setShortcut("Ctrl+C")
+        self.action_copyText.setEnabled(False)
+        self.action_pastText = QAction(QIcon("icons/past.png"), "Past", self)
+        self.action_pastText.triggered.connect(self.past_text)
+        self.action_pastText.setShortcut("Ctrl+V")
+        self.action_pastText.setEnabled(False)
+        self.action_cutText = QAction(QIcon("icons/cut.png"), "Cut", self)
+        self.action_cutText.triggered.connect(self.cut_text)
+        self.action_cutText.setShortcut("Ctrl+X")
+        self.action_cutText.setEnabled(False)
+        self.action_selectAll = QAction(QIcon("icons/select all.png"), "Select All", self)
+        self.action_selectAll.triggered.connect(self.select_all)
+        self.action_selectAll.setShortcut("Ctrl+A")
+        self.action_delete = QAction(QIcon("icons/delete.png"), "Delete", self)
+        self.action_delete.triggered.connect(self.delete_text)
+        self.action_delete.setShortcut("Del")
+        self.action_delete.setEnabled(False)
+
+        # Help
+        self.action_about = QAction(QIcon("icons/about_(info).png"), "About", self)
+        self.action_about.triggered.connect(self.show_about)
 
     def create_menu_bar(self):
-        self.menuBar = QMenuBar(self)
+        self.menuBar = self.menuBar()
 
         def create_file_menu():
             self.file_menu = self.menuBar.addMenu("&File")
 
-            self.action_newPage = self.file_menu.addAction(QIcon("icons/new.png"), "New")
+            self.file_menu.addAction(self.action_newPage)
             self.file_menu.addSeparator()
-            self.action_openFile = self.file_menu.addAction(QIcon("icons/open.png"), "Open...")
-            self.action_saveFile = self.file_menu.addAction(QIcon("icons/save.png"), "Save")
-            self.action_saveFileAs = self.file_menu.addAction(QIcon("icons/save_as.png"), "Save As...")
+            self.file_menu.addAction(self.action_openFile)
+            self.file_menu.addAction(self.action_saveFile)
+            self.file_menu.addAction(self.action_saveFileAs)
             self.file_menu.addSeparator()
             self.action_recentFile = self.file_menu.addMenu("Recent File")
             self.update_recent_files()
             self.file_menu.addSeparator()
-            self.action_exit = self.file_menu.addAction(QIcon("icons/exit.png"), "Exit")
-
-            self.action_newPage.triggered.connect(self.new_page)
-            self.action_openFile.triggered.connect(self.open_file)
-            self.action_saveFile.triggered.connect(self.save_file)
-            self.action_saveFileAs.triggered.connect(self.save_file_as)
-
-            self.action_exit.triggered.connect(self.close_appli)
+            self.file_menu.addAction(self.action_exit)
 
         def create_edit_menu():
             self.edit_menu = self.menuBar.addMenu("&Edit")
 
-            self.action_random_msg = self.edit_menu.addAction(QIcon("icons/add.png"), "Write word")
+            self.edit_menu.addAction(self.action_random_msg)
             self.edit_menu.addSeparator()
-            self.action_undo = self.edit_menu.addAction(QIcon("icons/undo.png"), "Undo")
-            self.action_undo.setShortcut("Ctrl+Z")
-            self.action_undo.setEnabled(False)
-            self.action_redo = self.edit_menu.addAction(QIcon("icons/redo.png"), "Redo")
-            self.action_redo.setShortcut("Ctrl+Y")
-            self.action_redo.setEnabled(False)
+            self.edit_menu.addAction(self.action_undo)
+            self.edit_menu.addAction(self.action_redo)
             self.edit_menu.addSeparator()
-            self.action_copyText = self.edit_menu.addAction(QIcon("icons/copy.png"), "Copy")
-            self.action_copyText.setShortcut("Ctrl+C")
-            self.action_copyText.setEnabled(False)
-            self.action_pastText = self.edit_menu.addAction(QIcon("icons/past.png"), "Past")
-            self.action_pastText.setShortcut("Ctrl+V")
-            self.action_pastText.setEnabled(False)
-            self.action_cutText = self.edit_menu.addAction(QIcon("icons/cut.png"), "Cut")
-            self.action_cutText.setShortcut("Ctrl+X")
-            self.action_cutText.setEnabled(False)
-            self.action_selectAll = self.edit_menu.addAction("Select All")
-            self.action_selectAll.setShortcut("Ctrl+A")
-            self.action_delete = self.edit_menu.addAction("Delete")
-            self.action_delete.setShortcut("Del")
-            self.action_delete.setEnabled(False)
-
-            self.action_random_msg.triggered.connect(self.write_word)
-            self.action_undo.triggered.connect(self.undo_action)
-            self.action_redo.triggered.connect(self.redo_action)
-            self.action_copyText.triggered.connect(self.copy_text)
-            self.action_pastText.triggered.connect(self.past_text)
-            self.action_cutText.triggered.connect(self.cut_text)
-            self.action_selectAll.triggered.connect(self.select_all)
-            self.action_delete.triggered.connect(self.delete_text)
+            self.edit_menu.addAction(self.action_copyText)
+            self.edit_menu.addAction(self.action_pastText)
+            self.edit_menu.addAction(self.action_cutText)
+            self.edit_menu.addAction(self.action_selectAll)
+            self.edit_menu.addAction(self.action_delete)
 
         def create_help_menu():
             self.help_menu = self.menuBar.addMenu("&Help")
 
-            self.action_about = self.help_menu.addAction(QIcon("icons/about_(info).png"), "About")
-            self.action_about.triggered.connect(self.show_about)
+            self.help_menu.addAction(self.action_about)
 
         create_file_menu()
         create_edit_menu()
         create_help_menu()
+
+    def create_tool_bar(self):
+        self.toolBar = QToolBar("Tool Bar")
+        self.toolBar.setMovable(False)
+        self.toolBar.setIconSize(QSize(20, 20))  # print(self.toolBar.iconSize())
+        self.addToolBar(self.toolBar)
+
+        self.toolBar.addAction(self.action_newPage)
+        self.toolBar.addAction(self.action_openFile)
+        self.toolBar.addAction(self.action_saveFile)
+        self.toolBar.addSeparator()
+        self.toolBar.addAction(self.action_undo)
+        self.toolBar.addAction(self.action_redo)
+        self.toolBar.addSeparator()
+        self.toolBar.addAction(self.action_copyText)
+        self.toolBar.addAction(self.action_pastText)
+        self.toolBar.addAction(self.action_cutText)
+        self.toolBar.addSeparator()
+        self.toolBar.addAction(self.action_exit)
 
     def create_widgets(self):
         self.te_content = QTextEdit()
@@ -106,7 +149,6 @@ class MainWindow(QWidget):
         pass
 
     def add_widgets_to_layouts(self):
-        self.main_layout.setMenuBar(self.menuBar)
         self.main_layout.addWidget(self.te_content)
 
     def setup_connections(self):
@@ -166,7 +208,7 @@ class MainWindow(QWidget):
         self.update_recent_files()
 
     def update_recent_files(self):
-        self.action_recentFile.clear()  # Supprime les anciens fichiers
+        self.action_recentFile.clear()
 
         for file in os.listdir(self.save_dir):
             action = self.action_recentFile.addAction(file)
