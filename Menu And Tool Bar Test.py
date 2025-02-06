@@ -3,16 +3,20 @@ import string
 import json
 import os
 
-from PySide6.QtCore import QTimer, QSize
-from PySide6.QtGui import QIcon, QAction
-from PySide6.QtWidgets import (QMessageBox, QVBoxLayout, QWidget, QApplication, QTextEdit, QFileDialog,
-                               QToolBar, QMainWindow)
+from PySide6.QtCore import QTimer, QSize, Qt
+from PySide6.QtGui import QIcon, QAction, QFont, QFontDatabase
+from PySide6.QtWidgets import (QMessageBox, QVBoxLayout, QGridLayout, QWidget, QApplication, QTextEdit, QFileDialog,
+                               QToolBar, QMainWindow, QLineEdit, QSpinBox)
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.save_dir = os.path.join(os.path.dirname(__file__), "save")
+
+        self.font_id = QFontDatabase.addApplicationFont("font/font.ttf")
+        self.font_families = QFontDatabase.applicationFontFamilies(self.font_id)
+
         self.actual_text = ""
 
         self.setup_ui()
@@ -33,23 +37,23 @@ class MainWindow(QMainWindow):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
 
-        self.main_layout = QVBoxLayout(self.central_widget)
+        self.main_layout = QGridLayout(self.central_widget)
 
     def create_action(self):
         # File
-        self.action_newPage = QAction(QIcon("icons/new.png"), "New", self)
+        self.action_newPage = QAction(QIcon("icons/new.png"), "&New", self)
         self.action_newPage.triggered.connect(self.new_page)
-        self.action_openFile = QAction(QIcon("icons/open.png"), "Open...", self)
+        self.action_openFile = QAction(QIcon("icons/open.png"), "&Open...", self)
         self.action_openFile.triggered.connect(self.open_file)
-        self.action_saveFile = QAction(QIcon("icons/save.png"), "Save", self)
+        self.action_saveFile = QAction(QIcon("icons/save.png"), "&Save", self)
         self.action_saveFile.triggered.connect(self.save_file)
         self.action_saveFileAs = QAction(QIcon("icons/save_as.png"), "Save As...", self)
         self.action_saveFileAs.triggered.connect(self.save_file_as)
-        self.action_exit = QAction(QIcon("icons/exit.png"), "Exit", self)
+        self.action_exit = QAction(QIcon("icons/exit.png"), "&Exit", self)
         self.action_exit.triggered.connect(self.close_appli)
 
         # Edit
-        self.action_random_msg = QAction(QIcon("icons/write.png"), "Write word", self)
+        self.action_random_msg = QAction(QIcon("icons/write.png"), "&Write word", self)
         self.action_random_msg.triggered.connect(self.write_word)
         self.action_undo = QAction(QIcon("icons/undo.png"), "Undo", self)
         self.action_undo.triggered.connect(self.undo_action)
@@ -88,6 +92,7 @@ class MainWindow(QMainWindow):
 
         def create_file_menu():
             self.file_menu = self.menuBar.addMenu("&File")
+            self.file_menu.setFont(QFont("Agency FB", 14))
 
             self.file_menu.addAction(self.action_newPage)
             self.file_menu.addSeparator()
@@ -102,6 +107,7 @@ class MainWindow(QMainWindow):
 
         def create_edit_menu():
             self.edit_menu = self.menuBar.addMenu("&Edit")
+            self.edit_menu.setFont(QFont("Berlin sans FB", 12))
 
             self.edit_menu.addAction(self.action_random_msg)
             self.edit_menu.addSeparator()
@@ -129,6 +135,10 @@ class MainWindow(QMainWindow):
         self.toolBar.setIconSize(QSize(20, 20))  # print(self.toolBar.iconSize())
         self.addToolBar(self.toolBar)
 
+        # Widget
+        self.sb_test = QSpinBox()
+        self.sb_test.setFocusPolicy(Qt.ClickFocus)
+
         self.toolBar.addAction(self.action_newPage)
         self.toolBar.addAction(self.action_openFile)
         self.toolBar.addAction(self.action_saveFile)
@@ -141,15 +151,22 @@ class MainWindow(QMainWindow):
         self.toolBar.addAction(self.action_cutText)
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.action_exit)
+        self.toolBar.addSeparator()
+        self.toolBar.addWidget(self.sb_test)
 
     def create_widgets(self):
+        self.le_test = QLineEdit()
         self.te_content = QTextEdit()
 
     def modify(self):
-        pass
+        self.le_test.setPlaceholderText("Line Edit with placeHolder")
+        self.le_test.setFocusPolicy(Qt.ClickFocus)
+        self.te_content.setFont(QFont(QFont(self.font_families, 16)))
 
     def add_widgets_to_layouts(self):
-        self.main_layout.addWidget(self.te_content)
+        # (y, x, h, l)
+        self.main_layout.addWidget(self.le_test, 0, 0, 1, 3)
+        self.main_layout.addWidget(self.te_content, 1, 0, 1, 3)
 
     def setup_connections(self):
         self.te_content.selectionChanged.connect(self.update_copy_cut_delete)
@@ -212,6 +229,7 @@ class MainWindow(QMainWindow):
 
         for file in os.listdir(self.save_dir):
             action = self.action_recentFile.addAction(file)
+            action.setFont(QFont("Bodoni MT", 12))
             action.triggered.connect(lambda checked, f=file: self.charge_file(f))
 
     def update_copy_cut_delete(self):
